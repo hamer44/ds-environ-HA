@@ -68,17 +68,33 @@ HINT HINT: Remember to check the labels of the data values to be able to set the
 
 
 ```{r ggplot-raster, fig.cap="Holiday plot with ggplot2 using the Spectral color scale"}
+#turn into dataframe
+df_holidayfarm <- as.data.frame(holidayfarm_sbs, xy = TRUE)
+
+ggplot() +
+    geom_raster(data = df_holidayfarm , aes(x = x, y = y, fill = Layer_1)) +
+    scale_fill_brewer(palette = "Spectral", direction=-1)
 
 
 ```
 
 ```{r ggplot-raster, fig.cap="Beachie plot with ggplot2 using the Spectral color scale"}
+#turn into dataframe
+df_beachiecreek <- as.data.frame(beachiecreek_sbs, xy = TRUE)
 
+ggplot() +
+    geom_raster(data = df_beachiecreek , aes(x = x, y = y, fill = Layer_1)) +
+    scale_fill_brewer(palette = "Spectral", direction=-1)
 
 ```
 
 ```{r ggplot-raster, fig.cap="Terwilliger plot with ggplot2 using the Spectral color scale"}
+#turn into dataframe
+df_terwilliger <- as.data.frame(terwilliger_sbs, xy = TRUE)
 
+ggplot() +
+    geom_raster(data = df_terwilliger , aes(x = x, y = y, fill = SoilBurnSe)) +
+    scale_fill_brewer(palette = "Spectral", direction=-1)
 
 
 ```
