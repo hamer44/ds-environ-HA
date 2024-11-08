@@ -1,6 +1,6 @@
 ---
 title: "Exploring bee-related spatial data"
-output: github_document
+output: pdf_document
 author:
   - Lauren Ponisio
 ---
@@ -28,34 +28,70 @@ library(sf)
 a. Import the OBA data.
 ```{r}
 
+OBA_data <- read.csv("OBA_2018-2023.csv")
+OBA_data
+
+OBA_data <- OBA_data %>% select(Genus, Species, Dec..Lat., Dec..Long., Associated.plant)
+OBA_data
 ```
 
 b. Find the columns related to genus and species and paste them together (with a space between) using the function paste(). Name the new column GenusSpecies.
 ```{r}
 
+OBA_data$GenusSpecies <- paste(OBA_data$Genus, OBA_data$Species)
+
+?paste()
 ```
 
 c. Use `sort()` and `unique()` to print the unique values of GenusSpecies in alphabetical order.  How many species are there? 
 
 ```{r}
+unique_genus_species <- sort(unique(OBA_data$GenusSpecies))
+summary(unique_genus_species)
+
+#There are 539 species
 
 ```
 
 Some specimens are not identified to species, only genus. How is this reflected in the data? 
 In two weeks we will learn how to clean this up using regular expressions. 
+ANSWER: This is reflected in the data by the Genus Species column just having the genus name with a space after it. 
 
 d. So many bees, so little time. Count up the occurrences of each bee species, and subset the data to bees that have been seen at least two times. 
 You can use the tidyverse or any other functions in R that you like. How many "species" are there? 
 
 ```{r}
+# count up the occurrences of each species
+bee_count <- OBA_data %>% 
+  
+  #omit rows without species
+  filter(!is.na(Species) & Species != "") %>%
+  
+  #count up each species
+  count(GenusSpecies) %>%
+  
+  #subset to bees that have been seen at least 2 times
+  filter(n >= 2)
+bee_count
+
+#number of species 
+num_species <- nrow(bee_count)
+num_species
+
+#346 species have been seen at least 2 times
 
 ```
 
 e. Google a few bee names (that have been seen > 2 times) and find one with an a look that resonates with you.
 
 What is the name of your bee? 
+ANSWER: Agapostemon virescens
 
 Import the photos into Rmarkdown below (hint: googling bee name "discover life" or "inat" can often get you a photo. Many bees will no have any photos :( 
+
+![](Agapostemon.virescens.jpg){alt='Extent illustration'} Image Source: BugGuide.Net
+
+
 
 # Lab part 2: Plotting the distrubution of your spirit bee. 
 
