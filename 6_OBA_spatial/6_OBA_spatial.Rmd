@@ -78,7 +78,7 @@ bee_count
 num_species <- nrow(bee_count)
 num_species
 
-#346 species have been seen at least 2 times
+#404 species have been seen at least 2 times
 
 ```
 
@@ -108,13 +108,41 @@ Hint 1: consider what other data you would like to keep as attributes, for examp
 Hint 3: You may want to rename the column names you can use, colnames() and reassign the names, since the ones in the oba data spreadsheet are really ugly. 
 
 ```{r}
+#Select columns
+OBA_data_xy <- OBA_data %>% 
+  select(Dec..Lat., Dec..Long., Associated.plant, GenusSpecies) %>%
+  
+#filter to species of choice
+  filter(GenusSpecies == "Agapostemon virescens")
 
 
+
+#rename columns
+colnames(OBA_data_xy)[colnames(OBA_data_xy) == "Dec..Lat."] <- "Latitude"
+colnames(OBA_data_xy)[colnames(OBA_data_xy) == "Dec..Long."] <- "Longitude"
+
+#remove rows with missing Longitude or Latitude values
+OBA_data_xy <- OBA_data_xy %>%
+  filter(!is.na(Longitude) & !is.na(Latitude))
+
+#create sf object
+EPSG4326 <- crs("EPSG:4326")
+
+
+OBA_data_xy <- st_as_sf(OBA_data_xy,
+                                   coords = c("Longitude", "Latitude"),
+                                   crs = EPSG4326)
+
+#check crs
+crs(OBA_data_xy)
 ```
 
 b. Plot your exciting bee data!
 
 ```{r plot-data-points}
+ggplot() +
+  geom_sf(data = OBA_data_xy, color = "black") +
+  ggtitle("Map of Bee Locations")
 
 ```
 
@@ -132,6 +160,18 @@ c. Add your species's points to your choice or an Oregon basemap.
 
 ```{r plot-data-points-basemap}
 library(ggspatial)
+
+
+ggplot() +
+  
+  geom_polygon(data = or, aes(x = lon, y = lat, group = group), 
+               fill = "lightgray", color = "black") +
+
+  geom_sf(data = OBA_data_xy, color = "hotpink", size = 1) +
+  ggtitle("Map of Bee Locations") +
+  theme_minimal() 
+  
+
 
 
 ```
