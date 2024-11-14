@@ -187,8 +187,36 @@ additional attributes when you converted the dataframe to a spatial object.
 6. Push this lab to your github repo (just the .Rmd, don't push the data!)
 
 ```{r plot-creative}
+#load in ecoregions data
+ecoregions_shp <- st_read("OR-ecoregions/Ecoregions_OregonConservationStrategy.shp")
 
+#check crs
+crs(ecoregions_shp, proj=TRUE)
 
+ecoregions_shp <- st_transform(ecoregions_shp,
+                                 crs(OBA_data_xy))
+
+# This should return TRUE
+crs(ecoregions_shp, proj = TRUE) == crs(OBA_data_xy, proj = TRUE)
+
+#make map
+ggplot() +
+  
+  #ecoregion shapefile
+  geom_sf(data = ecoregions_shp, aes(fill=Ecoregion)) +
+  
+  # county boundaries polygon 
+  geom_polygon(data = or, aes(x = lon, y = lat, group = group), 
+               fill = NA, color = "black") +
+
+  #bee point data
+  geom_sf(data = OBA_data_xy, aes(color = Associated.plant) , size = 1) +
+  
+  #title and such
+  ggtitle("Map of Bee Locations") +
+  theme_minimal() +
+
+  theme(legend.position = "none")
 ```
 
 We are looking forward to seeing the maps you create! 
