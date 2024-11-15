@@ -163,9 +163,11 @@ library(ggspatial)
 
 ggplot() +
   
+  #counties
   geom_polygon(data = or, aes(x = lon, y = lat, group = group), 
                fill = "lightgray", color = "black") +
 
+  #bee points
   geom_sf(data = OBA_data_xy, color = "hotpink", size = 1) +
   ggtitle("Map of Agapostemon virescens locations with counties") +
   theme_minimal() 
@@ -201,7 +203,7 @@ crs(ecoregions_shp) == crs(OBA_data_xy)
 ```
 
 ```{r}
-#prep the layers for mapping, change colors and order
+# prep the layers for mapping, change colors and order
 
 #color pallets for ecoregions and months
 ecoregion_colors <- c("Klamath Mountains" = "#f7fbff",
@@ -233,8 +235,8 @@ OBA_data_xy$MonthCollected <- factor(OBA_data_xy$MonthCollected,
                                       levels = c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"))
 
 
-# add a scale bar 
-install.packages("ggspatial")
+# packages to add a scale bar 
+# install.packages(ggspatial)
 library(ggspatial)
 ```
 
@@ -262,8 +264,12 @@ ggplot() +
   
   
   #scalebar 
-   annotation_scale(location = "br", width_hint = 0.1) +
-  
+   annotation_scale(location = "br", width_hint = 0.2) +
+
+   #north arrow
+    annotation_north_arrow(location = "tl", which_north = "true", 
+                         style = north_arrow_nautical()) +
+   
 #make legend adjustments
   theme( 
 
@@ -272,13 +278,14 @@ legend.key.size = unit(0.4, "cm"),
     legend.text = element_text(size = 6.5)) +
 
      # rename legend
-labs(color = "Month Collected")
+labs(color = "Month Collected") +
+  labs(x = "Longitude",
+      y = "Latitude",
+      caption = "This map is looking at the distribution of the Agapostemon virescens bee \n species within Oregon state. This map shows that this species is very common \n in the Willamette Valley ecoregion, but it is more sparse throughout the rest of \n the state. It is not seen throughout the central parts of the state, or in the \n southern and eastern areas. It is also apparent that Agapostemon virescens is \n commonly collected in the months May-September, telling us \n that either the bee or the collectors are most active at this time")
 
 
 
 ```
-
-
 
 
 We are looking forward to seeing the maps you create! 
@@ -290,6 +297,42 @@ b. Create a plot that illustrates this summary data (box plot, barplot, scatter 
 c. Create a map of your cropped spatial data.
 
 ```{r buffers}
+# a.
 
+# perform a spatial join to count how many points fall in each ecoregion
+joined_data <- st_join(OBA_data_xy, ecoregions_shp)
+
+# count the points per ecoregion
+point_counts <- table(joined_data$Ecoregion) 
+print(point_counts)
+
+
+# add point counts as a new column to ecoregions
+ecoregions_shp$point_count <- as.integer(point_counts[match(ecoregions_shp$Ecoregion, names(point_counts))])
+```
+
+```{r}
+# convert the counts into a data frame for plotting
+count_df <- as.data.frame(point_counts)
+colnames(count_df) <- c("Ecoregion", "Count")
+
+# bar plot
+ggplot(count_df, aes(x = reorder(Ecoregion, -Count), y = Count)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(x = "Ecoregion", y = "Number of Points", title = "Points per Ecoregion") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ```
+
+
+```{r}
+# c. 
+ggplot(data = ecoregions_shp) +
+  geom_sf(aes(fill = point_count)) +
+  scale_fill_viridis_c(name = "Number of Points") +
+  labs(title = "Agapostemon virescens Points per Ecoregion") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+
