@@ -29,10 +29,10 @@ a. Import the OBA data.
 ```{r}
 
 OBA_data <- read.csv("OBA_2018-2023.csv")
-OBA_data
+
 
 OBA_data <- OBA_data %>% select(Genus, Species, Dec..Lat., Dec..Long., Associated.plant, MonthJul)
-OBA_data
+
 ```
 
 b. Find the columns related to genus and species and paste them together (with a space between) using the function paste(). Name the new column GenusSpecies.
@@ -72,7 +72,7 @@ bee_count <- OBA_data %>%
   
   #subset to bees that have been seen at least 2 times
   filter(n >= 2)
-bee_count
+
 
 #number of species 
 num_species <- nrow(bee_count)
@@ -312,6 +312,8 @@ ecoregions_shp$point_count <- as.integer(point_counts[match(ecoregions_shp$Ecore
 ```
 
 ```{r}
+# b.
+
 # convert the counts into a data frame for plotting
 count_df <- as.data.frame(point_counts)
 colnames(count_df) <- c("Ecoregion", "Count")
@@ -319,7 +321,7 @@ colnames(count_df) <- c("Ecoregion", "Count")
 # bar plot
 ggplot(count_df, aes(x = reorder(Ecoregion, -Count), y = Count)) +
   geom_bar(stat = "identity", fill = "skyblue") +
-  labs(x = "Ecoregion", y = "Number of Points", title = "Points per Ecoregion") +
+  labs(x = "Ecoregion", y = "Number of Bees", title = "Agapostemon virescens per Ecoregion in Oregon") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ```
@@ -329,10 +331,10 @@ ggplot(count_df, aes(x = reorder(Ecoregion, -Count), y = Count)) +
 # c. 
 ggplot(data = ecoregions_shp) +
   geom_sf(aes(fill = point_count)) +
-  scale_fill_viridis_c(name = "Number of Points") +
-  labs(title = "Agapostemon virescens Points per Ecoregion") +
+  scale_fill_viridis_c(name = "Number of Bees") +
+  labs(title = "Agapostemon virescens per Ecoregion in Oregon") +
   theme_minimal() +
   theme(legend.position = "bottom")
 ```
 
-
+I got confused with the 500, 750, and 1000 km buffers and after some trial and error decided to focus on the other parts of this section. It kept giving me massive numbers of bees within each ecoregion, something was definitely going wrong. Not sure I fully understood the purpose of that part correctly. Oh well! I hope this take on it works :D.
