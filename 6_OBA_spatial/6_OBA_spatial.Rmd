@@ -31,7 +31,7 @@ a. Import the OBA data.
 OBA_data <- read.csv("OBA_2018-2023.csv")
 OBA_data
 
-OBA_data <- OBA_data %>% select(Genus, Species, Dec..Lat., Dec..Long., Associated.plant)
+OBA_data <- OBA_data %>% select(Genus, Species, Dec..Lat., Dec..Long., Associated.plant, MonthJul)
 OBA_data
 ```
 
@@ -108,9 +108,9 @@ Hint 1: consider what other data you would like to keep as attributes, for examp
 Hint 3: You may want to rename the column names you can use, colnames() and reassign the names, since the ones in the oba data spreadsheet are really ugly. 
 
 ```{r}
-#Select columns
+#select columns
 OBA_data_xy <- OBA_data %>% 
-  select(Dec..Lat., Dec..Long., Associated.plant, GenusSpecies) %>%
+  select(Dec..Lat., Dec..Long., MonthJul, GenusSpecies) %>%
   
 #filter to species of choice
   filter(GenusSpecies == "Agapostemon virescens")
@@ -120,6 +120,7 @@ OBA_data_xy <- OBA_data %>%
 #rename columns
 colnames(OBA_data_xy)[colnames(OBA_data_xy) == "Dec..Lat."] <- "Latitude"
 colnames(OBA_data_xy)[colnames(OBA_data_xy) == "Dec..Long."] <- "Longitude"
+colnames(OBA_data_xy)[colnames(OBA_data_xy) == "MonthJul"] <- "MonthCollected"
 
 #remove rows with missing Longitude or Latitude values
 OBA_data_xy <- OBA_data_xy %>%
@@ -133,8 +134,6 @@ OBA_data_xy <- st_as_sf(OBA_data_xy,
                                    coords = c("Longitude", "Latitude"),
                                    crs = EPSG4326)
 
-#check crs
-crs(OBA_data_xy)
 ```
 
 b. Plot your exciting bee data!
@@ -142,7 +141,7 @@ b. Plot your exciting bee data!
 ```{r plot-data-points}
 ggplot() +
   geom_sf(data = OBA_data_xy, color = "black") +
-  ggtitle("Map of Bee Locations")
+  ggtitle("Map of Agapostemon virescens locations")
 
 ```
 
@@ -168,10 +167,9 @@ ggplot() +
                fill = "lightgray", color = "black") +
 
   geom_sf(data = OBA_data_xy, color = "hotpink", size = 1) +
-  ggtitle("Map of Bee Locations") +
+  ggtitle("Map of Agapostemon virescens locations with counties") +
   theme_minimal() 
   
-
 
 
 ```
@@ -187,37 +185,101 @@ additional attributes when you converted the dataframe to a spatial object.
 6. Push this lab to your github repo (just the .Rmd, don't push the data!)
 
 ```{r plot-creative}
+# prep the data
+
 #load in ecoregions data
 ecoregions_shp <- st_read("OR-ecoregions/Ecoregions_OregonConservationStrategy.shp")
 
-#check crs
-crs(ecoregions_shp, proj=TRUE)
-
-ecoregions_shp <- st_transform(ecoregions_shp,
-                                 crs(OBA_data_xy))
+#make them have same crs
+ecoregions_shp <- st_transform(ecoregions_shp, crs = 4326)
 
 # This should return TRUE
-crs(ecoregions_shp, proj = TRUE) == crs(OBA_data_xy, proj = TRUE)
+crs(ecoregions_shp) == crs(OBA_data_xy)
 
+
+
+```
+
+```{r}
+#prep the layers for mapping, change colors and order
+
+#color pallets for ecoregions and months
+ecoregion_colors <- c("Klamath Mountains" = "#f7fbff",
+                      "Northern Basin and Range" = "#deebf7",  
+                      "West Cascades" = "#c6dbef",  
+                      "East Cascades" = "#9ecae1", 
+                      "Blue Mountains" = "#6baed6", 
+                      "Columbia Plateau" = "#4292c6",  
+                      "Willamette Valley" = "#2171b5",  
+                      "Coast Range" = "#08519c",  
+                      "Nearshore" = "#08306b")  
+
+
+month_colors <- c("January" = "red", 
+                  "February" = "red", 
+                  "March" = "#f7f4f9",  
+                  "April" = "#e7e1ef", 
+                  "May" = "#d4b9da",  
+                  "June" = "#c994c7",  
+                  "July" = "#df65b0",  
+                  "August" = "#e7298a",  
+                  "September" = "#ce1256",  
+                  "October" = "#980043",  
+                  "November" = "#67001f",  
+                  "December" = "red")
+
+#putting months in order so the legend is in order
+OBA_data_xy$MonthCollected <- factor(OBA_data_xy$MonthCollected,
+                                      levels = c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"))
+
+
+# add a scale bar 
+install.packages("ggspatial")
+library(ggspatial)
+```
+
+```{r}
 #make map
 ggplot() +
   
   #ecoregion shapefile
-  geom_sf(data = ecoregions_shp, aes(fill=Ecoregion)) +
+  geom_sf(data = ecoregions_shp, aes(fill = Ecoregion)) +
   
-  # county boundaries polygon 
+   scale_fill_manual(values = ecoregion_colors) + 
+  
+  #counties
   geom_polygon(data = or, aes(x = lon, y = lat, group = group), 
                fill = NA, color = "black") +
 
   #bee point data
-  geom_sf(data = OBA_data_xy, aes(color = Associated.plant) , size = 1) +
+  geom_sf(data = OBA_data_xy, aes(color = MonthCollected) , size = 1) +
+   scale_color_manual(values = month_colors, na.value = "grey") +
   
   #title and such
-  ggtitle("Map of Bee Locations") +
-  theme_minimal() +
+  
+  #title
+  ggtitle("Map of Agapostemon virescens locations \n with Oregon Counties and Ecoregions") +
+  
+  
+  #scalebar 
+   annotation_scale(location = "br", width_hint = 0.1) +
+  
+#make legend adjustments
+  theme( 
 
-  theme(legend.position = "none")
+  #resize legend
+legend.key.size = unit(0.4, "cm"),
+    legend.text = element_text(size = 6.5)) +
+
+     # rename legend
+labs(color = "Month Collected")
+
+
+
 ```
+
+
+
 
 We are looking forward to seeing the maps you create! 
 
