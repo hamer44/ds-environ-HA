@@ -292,49 +292,126 @@ We are looking forward to seeing the maps you create!
 
 # Lab part 4: Spatial summary statistics
  For your final projects, you will likely need to come up with summary statistics that describes the areas around where bees are captured. 
-a. Using the distribution of your chosen bee and the spatial layer you imported in 2.6, extract a meaningful summary statistics from your spatial layer within a buffer of 500, 750 1000 km.
+a. Using the distribution of your chosen bee and the spatial layer you imported in 2.6, extract a meaningful summary statistics from your spatial layer within a buffer of 500, 750 1000 m.
 b. Create a plot that illustrates this summary data (box plot, barplot, scatter plot, historgram). 
 c. Create a map of your cropped spatial data.
 
 ```{r buffers}
 # a.
+library(sf) 
 
-# perform a spatial join to count how many points fall in each ecoregion
-joined_data <- st_join(OBA_data_xy, ecoregions_shp)
+#no buffer
+# perform a spatial join to count how many points fall in each ecoregion 
+joined_data <- st_join(OBA_data_xy, ecoregions_shp)  
 
-# count the points per ecoregion
-point_counts <- table(joined_data$Ecoregion) 
-print(point_counts)
+# count the points per ecoregion 
+point_counts <- table(joined_data$Ecoregion)  
+print(point_counts)   
+
+# add point counts as a new column to ecoregions 
+ecoregions_shp$point_counts <- as.integer(point_counts[match(ecoregions_shp$Ecoregion, names(point_counts))])
 
 
-# add point counts as a new column to ecoregions
-ecoregions_shp$point_count <- as.integer(point_counts[match(ecoregions_shp$Ecoregion, names(point_counts))])
+#create the buffers using the point data
+buffers_500 <- st_buffer(OBA_data_xy, dist = 500)
+buffers_750 <- st_buffer(OBA_data_xy, dist = 750)
+buffers_1000 <- st_buffer(OBA_data_xy, dist = 1000)
+
+
+# 500 buffer
+joined_data_500 <- st_join(buffers_500, ecoregions_shp)
+point_counts_500 <- table(joined_data_500$Ecoregion)
+ecoregions_shp$point_count_500 <- as.integer(point_counts_500[match(ecoregions_shp$Ecoregion, names(point_counts_500))])
+
+# 750m buffer
+joined_data_750 <- st_join(buffers_750, ecoregions_shp)
+point_counts_750 <- table(joined_data_750$Ecoregion)
+ecoregions_shp$point_count_750 <- as.integer(point_counts_750[match(ecoregions_shp$Ecoregion, names(point_counts_750))])
+
+# 1000m buffer
+joined_data_1000 <- st_join(buffers_1000, ecoregions_shp)
+point_counts_1000 <- table(joined_data_1000$Ecoregion)
+ecoregions_shp$point_count_1000 <- as.integer(point_counts_1000[match(ecoregions_shp$Ecoregion, names(point_counts_1000))])
+
+# print
+print(ecoregions_shp)
+
+
+
 ```
 
 ```{r}
 # b.
 
-# convert the counts into a data frame for plotting
-count_df <- as.data.frame(point_counts)
-colnames(count_df) <- c("Ecoregion", "Count")
+# make a data frame
+count_df <- data.frame(
+  Ecoregion = ecoregions_shp$Ecoregion,
+ No_Buffer = ecoregions_shp$point_counts,
+  Buffer_500m = ecoregions_shp$point_count_500,
+  Buffer_750m = ecoregions_shp$point_count_750,
+  Buffer_1000m = ecoregions_shp$point_count_1000
+)
 
-# bar plot
-ggplot(count_df, aes(x = reorder(Ecoregion, -Count), y = Count)) +
-  geom_bar(stat = "identity", fill = "skyblue") +
-  labs(x = "Ecoregion", y = "Number of Bees", title = "Agapostemon virescens per Ecoregion in Oregon") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# Convert to long format 
+library(tidyr)
+count_long <- pivot_longer(
+  count_df,
+  cols = c(No_Buffer, Buffer_500m, Buffer_750m, Buffer_1000m),
+  names_to = "Buffer_Distance",
+  values_to = "Count"
+)
+
+# Plot 
+library(ggplot2)
+ggplot(count_long, aes(x = reorder(Ecoregion, -Count), y = Count, fill = Buffer_Distance)) +
+  geom_bar(stat = "identity", position = "dodge") +  # Dodge separates the bars by Buffer_Distance
+  labs(
+    x = "Ecoregion",
+    y = "Number of Bees",
+    fill = "Buffer Distance",
+    title = "Agapostemon virescens Counts per Ecoregion and Buffer in Oregon"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_brewer(palette = "Set2")
 
 ```
 
 
 ```{r}
 # c. 
+library(ggplot2)
+library(sf)
+
 ggplot(data = ecoregions_shp) +
-  geom_sf(aes(fill = point_count)) +
+  # base map: Ecoregions with bee counts
+  geom_sf(aes(fill = point_counts), color = "black") +
   scale_fill_viridis_c(name = "Number of Bees") +
-  labs(title = "Agapostemon virescens per Ecoregion in Oregon") +
+  
+  # 500m Buffer
+  geom_sf(data = Buffer_500m, 
+          color = "blue", alpha = 0.1) +
+  
+  # 750m Buffer
+  geom_sf(data = Buffer_750m, 
+          color = "green", alpha = 0.1) +
+  
+  # 1000m Buffer
+  geom_sf(data = Buffer_1000m, 
+          color = "red", alpha = 0.1) +
+  
+  # bee points
+  geom_sf(data = OBA_data_xy, color = "black", size = 1, shape = 21, fill = "white") +
+  
+  # labels and theme
+  labs(
+    title = "Agapostemon virescens per Ecoregion with Buffers in Oregon",
+    fill = "Number of Bees"
+  ) +
   theme_minimal() +
-  theme(legend.position = "bottom")
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14)
+  )
 ```
 
-I got confused with the 500, 750, and 1000 km buffers and after some trial and error decided to focus on the other parts of this section. It kept giving me massive numbers of bees within each ecoregion, something was definitely going wrong. Not sure I fully understood the purpose of that part correctly. Oh well! I hope this take on it works :D.
+
