@@ -2,8 +2,8 @@
 title: "Lab 7: Networks"
 author: "Lauren Ponisio"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 <!-- Lesson Overview -->
@@ -34,9 +34,9 @@ First we will read in the data. The matrix we are reading in has no row or colum
 
 ```{r load-data}
 sp_occ <- read.table(file="data/egypt_data.txt", header = FALSE)
-str(sp_occ)
+
 sp_mass <- read.table(file="data/egypt_mass.txt", header=FALSE)
-str(sp_mass)
+
 ```
 ![Figure 2](figures/figure2.jpg)
 
@@ -75,6 +75,7 @@ Below are the values of alpha, beta, and gamma for the Serengeti.  In addition, 
 alpha <- 2.51
 beta <- 0.79
 gamma <- -0.37
+
   
 inv_logit <- function(x) exp(x)/(1+exp(x))
 
@@ -102,6 +103,7 @@ probEat <- function(alpha, beta, gamma, mi, mj) {
   
 }
 
+
 ```
 
 c. Now create networks of who eats whom. We will start with adjacency matrices. We will assume all of our species are the size of females. For this step, don't worry about predators vs. prey yet, just calculate all of the feeding probabilities based on body sizes.  
@@ -109,25 +111,25 @@ c. Now create networks of who eats whom. We will start with adjacency matrices. 
 Hint: if you start with a square matrix of all zeros (one row and one column for each species), you can use a for loop to fill in that matrix with probabilities calculated from your function above.
 
 ```{r create-adj-mat}
-#number of species
+# adjacency matrix
 n_species <- nrow(sp_mass)
+adj_matrix <- matrix(0, nrow = n_species, ncol = n_species)
+rownames(adj_matrix) <- row_labs_sp
+colnames(adj_matrix) <- row_labs_sp
 
-
-# matrix with zeros
-matrix_sp <- matrix(0, nrow = n_species, ncol = n_species)
-
-rownames(matrix_sp) <- rownames(sp_mass)
-colnames(matrix_sp) <- rownames(sp_mass)
-
-# fill matrix with probabilities
+# feeding probabilities
 for (i in 1:n_species) {
   for (j in 1:n_species) {
-    # probability of species i eating species j
-    matrix_sp[i, j] <- probEat(alpha, beta, gamma, sp_mass[i, "f"], sp_mass[j, "f"])
+    # make sure predator and prey are different species
+    if (i != j) {
+      adj_matrix[i, j] <- probEat(alpha, beta, gamma, mi = sp_mass[i, "f"], mj = sp_mass[j, "f"])
+    }
   }
 }
 
-print(matrix_sp)
+# view the adjacency matrix
+head(adj_matrix)
+
 
 ```
 
@@ -139,13 +141,17 @@ HINT: the function 'sweep' may be useful, though there are many approaches to do
 carnivores <- c(rep(1, 9), rep(0, length(row_labs_sp)- 9))
 names(carnivores) <- row_labs_sp
 
-# set herbivore interaction to 0
-matrix_sp <- sweep(matrix_sp, 1, carnivores, FUN = "*")
-matrix_sp <- sweep(matrix_sp, 2, carnivores, FUN = "*")
+# adjust the matrix for trophic levels
+# multiply each column by the corresponding carnivore
+adjusted_matrix <- sweep(adj_matrix, 2, carnivores, `*`)
 
-# print sums to check the results
-print(rowSums(matrix_sp))
-print(colSums(matrix_sp))
+# Print row and column sums
+row_sums <- rowSums(adjusted_matrix)
+col_sums <- colSums(adjusted_matrix)
+
+
+print(row_sums)
+print(col_sums)
 ```
 
 # Lab part 2: Breaking the networks into time periods
@@ -159,20 +165,20 @@ HINT: You will need to zero out the rows where a species in not present in that 
 ```{r t1-time-webs}
 library(bipartite)
 
-# just second time period
-present_species <- sp_occ[ ,2] 
-names(present_species) <- rownames(sp_occ)  # species names as row names
+# filter species based on second column
+present_species <- sp_occ[, 2] == 1
 
-# zero out rows where species is not present
-matrix_filtered <- sweep(matrix_sp, 1, present_species, FUN = "*" )  # zero out rows
-matrix_filtered <- sweep(matrix_filtered, 2, present_species, FUN = "*" )  # zero out columns
+# make the rows zero with absent species
+matrix_filtered <- adj_matrix
+matrix_filtered <- sweep(matrix_filtered, 1, present_species, `*`) # rows
+matrix_filtered <- sweep(matrix_filtered, 2, present_species, `*`) # columns
 
 # remove rows and columns with no interactions
-matrix_cleaned <- empty(matrix_filtered)
+network_matrix <- empty(matrix_filtered)
 
-# Check to see that the number of rows in your network with probabilities > 0 is 36
-print(nrow(matrix_cleaned))  # 36?
-print(sum(sp_occ[,2]))  # Check against the sum of present species (36)
+# check number of rows
+print(nrow(network_matrix))
+print(sum(rowSums(network_matrix) > 0))
 
 ```
 
@@ -191,19 +197,20 @@ networks <- vector("list", length = n_time_periods)
 # loop through each time period
 for (t in 1:n_time_periods) {
   
-    # species presence in time period t
-    present_species <- sp_occ[, t]
+    # species present in time period t
+    present_species <- sp_occ[, t] == 1
     names(present_species) <- rownames(sp_occ)
 
-    # Zero out extinct species in rows and columns 
-    matrix_filtered <- sweep(matrix_sp, 1, present_species, FUN = "*")  
+    # zero out the extinct species in both rows and columns 
+    matrix_filtered <- adj_matrix
+    matrix_filtered <- sweep(matrix_filtered, 1, present_species, FUN = "*")  
     matrix_filtered <- sweep(matrix_filtered, 2, present_species, FUN = "*")  
 
-    # Remove empty rows and columns
+    # remove empty rows and columns
     networks[[t]] <- empty(matrix_filtered)
 }
 
-# Print the first 5 rows and columns of the 5th time period
+# print the first 5 rows and columns of the 5th time period
 print(networks[[5]][1:5, 1:5])
 
 ```
@@ -216,12 +223,12 @@ a. Convert the adjacency matrices to igraph class objects using the function 'gr
 library(igraph)
 
 # convert to igraph objects
-igraph_networks <- lapply(networks, function(mat) {
+igraph_interaction_networks <- lapply(networks, function(mat) {
     graph_from_adjacency_matrix(mat, mode = "directed", diag = FALSE, weighted = TRUE)
 })
 
 # summary 
-print(igraph_networks[[1]])
+print(igraph_interaction_networks[[1]])
 
 ```
 
@@ -229,47 +236,71 @@ b. Plot three networks of your choice, using different colors for the predators 
 
 ```{r plot-g1}
 ## assign groups as carnivore or herbivore
-# 1 = predator
-carnivores
 names(carnivores) <- rownames(sp_occ)
 
-## convert to a network 3d object
-assign_colors <- function(graph, groups) {
-    V(graph)$color <- ifelse(groups[V(graph)$name] == 1, "red", "green")
-    return(graph)
-}
+## find modules
+mod_interactions  <- lapply(igraph_interaction_networks, cluster_walktrap)
 
-igraph_networks_colored <- lapply(igraph_networks, function(graph) {
-    assign_colors(graph, carnivores)
+## assign vertices to modules
+groups <- lapply(mod_interactions, membership)
+
+## convert to a network 3d object
+library(networkD3)
+
+species_interactions_3d <- lapply(seq_along(igraph_interaction_networks), function(i) {
+  igraph_to_networkD3(igraph_interaction_networks[[i]], group = groups[[i]], what = "both")
 })
 
+
+
 ## plot the network
-plot(igraph_networks_colored[[1]],
-     vertex.size = 10,
-     vertex.label.cex = 0.8,
-     edge.arrow.size = 0.5,
-     main = "Network 1")
+forceNetwork(
+  Links = species_interactions_3d[[1]]$links,
+  Nodes = species_interactions_3d[[1]]$nodes,
+  Source = "source", 
+  Target = "target", 
+  Value = "value", 
+  NodeID = "name", 
+  Group = "group", 
+  opacity = 0.8, 
+  zoom = TRUE, 
+  opacityNoHover = 0.9
+)
 
 ```
 
 ```{r plot-g2}
 
 # plot network 2
-plot(igraph_networks_colored[[1]],
-     vertex.size = 10,
-     vertex.label.cex = 0.8,
-     edge.arrow.size = 0.5,
-     main = "Network 1")
+forceNetwork(
+  Links = species_interactions_3d[[2]]$links,
+  Nodes = species_interactions_3d[[2]]$nodes,
+  Source = "source", 
+  Target = "target", 
+  Value = "value", 
+  NodeID = "name", 
+  Group = "group", 
+  opacity = 0.8, 
+  zoom = TRUE, 
+  opacityNoHover = 0.9
+)
 
 ```
 
 ```{r plot-g3}
 #plot network 3
-plot(igraph_networks_colored[[5]],
-     vertex.size = 10,
-     vertex.label.cex = 0.8,
-     edge.arrow.size = 0.5,
-     main = "Network 5")
+forceNetwork(
+  Links = species_interactions_3d[[3]]$links,
+  Nodes = species_interactions_3d[[3]]$nodes,
+  Source = "source", 
+  Target = "target", 
+  Value = "value", 
+  NodeID = "name", 
+  Group = "group", 
+  opacity = 0.8, 
+  zoom = TRUE, 
+  opacityNoHover = 0.9
+)
 
 
 ```
