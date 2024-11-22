@@ -1,9 +1,8 @@
 ---
-title: "Lab 7: Networks"
+title: 'Lab 7: Networks'
 author: "Lauren Ponisio"
 output:
-  pdf_document: default
-  html_document: default
+  pdf_document
 ---
 
 <!-- Lesson Overview -->
@@ -17,7 +16,7 @@ output:
 
 In this lab we will practice our network visualization and manipulation skills using the paleo food web data from [Yeakel et al. 2014](https://doi.org/10.1073/pnas.1408471111). 
 
-![Paleoweb](figures/paleoweb.jpg)
+
 
 See the beautiful, animated version of the graphic above [here](https://infograficos.estadao.com.br/public/cidades/extincoes-egito/)
 
@@ -38,7 +37,7 @@ sp_occ <- read.table(file="data/egypt_data.txt", header = FALSE)
 sp_mass <- read.table(file="data/egypt_mass.txt", header=FALSE)
 
 ```
-![Figure 2](figures/figure2.jpg)
+
 
 The rows are arranged in the order of Figure 2 of the manuscript. To set the rownames we can make a vector of the names then use the function 'rownames'. We also have to note which species are predators (all those in the species in the Carnivora clade in figure 2). Otherwise we will create a web where giraffes are voracious predators consuming all of the other species (I made this mistake when constructing the networks originally). I have transcribed the data from figure 2 for you: 
  
@@ -253,54 +252,65 @@ species_interactions_3d <- lapply(seq_along(igraph_interaction_networks), functi
 
 
 
-## plot the network
-forceNetwork(
-  Links = species_interactions_3d[[1]]$links,
-  Nodes = species_interactions_3d[[1]]$nodes,
-  Source = "source", 
-  Target = "target", 
-  Value = "value", 
-  NodeID = "name", 
-  Group = "group", 
-  opacity = 0.8, 
-  zoom = TRUE, 
-  opacityNoHover = 0.9
-)
+## plot the network 3D
+ #forceNetwork(
+ #Links = species_interactions_3d[[1]]$links,
+# Nodes = species_interactions_3d[[1]]$nodes,
+# Source = "source", 
+# Target = "target", 
+# Value = "value", 
+# NodeID = "name", 
+# Group = "group", 
+# opacity = 0.8, 
+# zoom = TRUE, 
+# opacityNoHover = 0.9
+#)
+
 
 ```
+```{r, fig.align="center"}
+knitr::include_graphics("network_1.png")
+```
 
-```{r plot-g2}
+
+
+
+```{r, fig.align="center"}
 
 # plot network 2
-forceNetwork(
-  Links = species_interactions_3d[[2]]$links,
-  Nodes = species_interactions_3d[[2]]$nodes,
-  Source = "source", 
-  Target = "target", 
-  Value = "value", 
-  NodeID = "name", 
-  Group = "group", 
-  opacity = 0.8, 
-  zoom = TRUE, 
-  opacityNoHover = 0.9
-)
+#forceNetwork(
+#  Links = species_interactions_3d[[2]]$links,
+#  Nodes = species_interactions_3d[[2]]$nodes,
+#  Source = "source", 
+#  Target = "target", 
+#  Value = "value", 
+#  NodeID = "name", 
+#  Group = "group", 
+#  opacity = 0.8, 
+#  zoom = TRUE, 
+#  opacityNoHover = 0.9
+#)
 
+knitr::include_graphics("network_2.png")
 ```
 
-```{r plot-g3}
+```{r, fig.align="center"}
 #plot network 3
-forceNetwork(
-  Links = species_interactions_3d[[3]]$links,
-  Nodes = species_interactions_3d[[3]]$nodes,
-  Source = "source", 
-  Target = "target", 
-  Value = "value", 
-  NodeID = "name", 
-  Group = "group", 
-  opacity = 0.8, 
-  zoom = TRUE, 
-  opacityNoHover = 0.9
-)
+#forceNetwork(
+ # Links = species_interactions_3d[[3]]$links,
+ # Nodes = species_interactions_3d[[3]]$nodes,
+ # Source = "source", 
+ # Target = "target", 
+#  Value = "value", 
+#  NodeID = "name", 
+#  Group = "group", 
+#  opacity = 0.8, 
+#  zoom = TRUE, 
+ # opacityNoHover = 0.9
+#)
+
+
+knitr::include_graphics("network_3.png")
 
 
 ```
